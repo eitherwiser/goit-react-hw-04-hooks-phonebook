@@ -1,37 +1,54 @@
-import React from "react";
+import { useState } from "react";
+import PropTypes from "prop-types";
+import { v4 as uuid } from 'uuid';
 import s from "./Form.module.css";
 
-export default class ContactForm extends React.Component {
+export default function ContactForm({onLocalStorageChange}) {
 
-  state = {
-    name: "",
-    number: "",
-    showForm: false,
+  const [name, setName] = useState('')
+  const [number, setNumber] = useState('')
+
+  const handleOnChange = (e) => {
+    const { type, value } = e.target;
+    switch(type) {
+      case 'text':
+        setName(value);
+        break;
+      case 'tel':
+        setNumber(value);
+        break;
+      default:
+        break;
+    }
   };
 
-  onChange = (e) => {
-    const { name, value } = e.currentTarget; 
-    this.setState({ [name]: value });
-  };
-
-  onSubmit = (e) => {
+  const onSubmit = (e) => {
+    const arr = JSON.parse(window.localStorage.getItem('contacts')) || [];
+    if (arr.some(contact => contact.uName === name)) {
+      alert(`${name} is already in your phonebook.`)
+      return;
+    } else if (arr.some(contact => contact.uNumber === number)) {
+      alert(`Person with number ${number} is already in your phonebook.`)
+      return;
+    }
+    window.localStorage.setItem('contacts', JSON.stringify(arr.concat([{ id: uuid(), uName: name, uNumber: number }])));
+    setName('');
+    setNumber('');
     e.preventDefault();
-    this.props.onFormSubmit(this.state.name, this.state.number);
-    this.setState({ name: "", number: "" });
+    onLocalStorageChange();
   };
 
 
-  render() {
-    return (
+      return (
       <div>
-          <form onSubmit={this.onSubmit} className={s.form}>
+          <form onSubmit={onSubmit} className={s.form}>
           <label className={s.label}>
             Name &nbsp;&nbsp;&nbsp;
             <input
               className={s.input}
               type="text"
-              onChange={this.onChange}
-              value={this.state.name}
+              onChange={handleOnChange}
+              value={name}
               name="name"
               pattern="^[a-zA-Zа-яА-Я]+(([' -][a-zA-Zа-яА-Я ])?[a-zA-Zа-яА-Я]*)*$"
               title="Имя может состоять только из букв, апострофа, тире и пробелов. Например Adrian, Jacob Mercer, Charles de Batz de Castelmore d'Artagnan и т. п."
@@ -44,9 +61,9 @@ export default class ContactForm extends React.Component {
             <input
               className={s.input}
               type="tel"
-              onChange={this.onChange}
+              onChange={handleOnChange}
               name="number"
-              value={this.state.number}
+              value={number}
               pattern="\+?\d{1,4}?[-.\s]?\(?\d{1,3}?\)?[-.\s]?\d{1,4}[-.\s]?\d{1,4}[-.\s]?\d{1,9}"
               title="Номер телефона должен состоять цифр и может содержать пробелы, тире, круглые скобки и может начинаться с +"
               required
@@ -60,5 +77,10 @@ export default class ContactForm extends React.Component {
       </div>
       
     );
-  }
+
 }
+
+
+ContactForm.propTypes = {
+  onLocalStorageChange: PropTypes.func.isRequired,
+};
